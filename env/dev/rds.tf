@@ -44,7 +44,7 @@ module "db" {
   
   source = "../../modules/rds"
 
-  identifier = var.application_name
+  identifier = "${var.application_name}-rds-${var.environment}"
 
   engine               = "mysql"
   engine_version       = "8.0"
