@@ -4,45 +4,37 @@ provider "aws" {
 
 data "aws_availability_zones" "available" {}
 
-locals {
-  db_password = random_password.master.result
-}
-
 
 ################################################################################
 # Random Pass + Secret Manager
 ################################################################################
-
-
 resource "random_password" "master"{
   length           = 10
   special          = true
   override_special = "_!%^"
 }
 
-resource "aws_secretsmanager_secret" "db_credentials" {
-  name                    = "${var.application_name}-${var.secret_intent}-secret-${var.environment}"
+resource "aws_secretsmanager_secret" "password" {
+  name                    = "${var.application_name}-${var.secret_intent}-sm-${var.environment}"
   description             = "RDS Admin password"
 }
 
-resource "aws_secretsmanager_secret_version" "db_credentials_version" {
-  secret_id = aws_secretsmanager_secret.db_credentials.id
-    secret_string = jsonencode({
-      username = var.db_secrets_map["username"],
-      dbname   = var.db_secrets_map["dbname"],
-      password = local.db_password
-    })
+
+
+resource "aws_secretsmanager_secret_version" "password" {
+  secret_id = aws_secretsmanager_secret.password.id
+  secret_string = random_password.master.result
 }
 
 
 #-------------->
 # data block for secret manager
 #-------------->
-data "aws_secretsmanager_secret" "db_credentials" {
-  name = aws_secretsmanager_secret.db_credentials.name
+data "aws_secretsmanager_secret" "password" {
+  name = aws_secretsmanager_secret.password.name
 }
-data "aws_secretsmanager_secret_version" "db_credentials_version" {
-  secret_id = data.aws_secretsmanager_secret.db_credentials.id
+data "aws_secretsmanager_secret_version" "password" {
+  secret_id = data.aws_secretsmanager_secret.password.id
 }
 
 
@@ -66,10 +58,9 @@ module "db" {
   allocated_storage     = 20
   max_allocated_storage = 100
 
-  db_name  = var.db_secrets_map["dbname"]
-  username = var.db_secrets_map["username"]
-  password = local.db_password
-
+  db_name  = "sample_db"
+  username = "admin"
+  password = data.aws_secretsmanager_secret_version.password.secret_string
   port     = 3306
   manage_master_user_password = false
   publicly_accessible = true

@@ -23,6 +23,12 @@ variable "secret_intent" {
 }
 
 
+######## SECRET MANAGER #########
+variable "db_secrets_map" {
+  type = map(string)
+  sensitive = true
+}
+
 ######## Tags ###########
 variable "tags" {
   type = map(string)
